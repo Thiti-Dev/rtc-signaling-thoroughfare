@@ -1,0 +1,1 @@
+export const MAXIMUM_CAPACITY_IN_EACH_ROOM = 10;
