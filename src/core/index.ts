@@ -45,6 +45,13 @@ export function socketEventInitializer(server: FastifyInstance){
             socket.on("returning signal", (payload:SignalingPayload) => {
                 server.io.to(payload.callerID).emit('receiving returned signal', { signal: payload.signal, id: socket.id, callerIAM:  socketToIam[socket.id] });
             });
+
+
+            // Synchronization request
+            socket.on("req sync", () => {
+                server.io.emit("req sync", socket.id)
+            })
+            // ------------------------
     
             // On disconnect hook
             socket.on('disconnect', () => {
