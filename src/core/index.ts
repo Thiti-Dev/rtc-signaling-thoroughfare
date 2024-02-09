@@ -4,10 +4,18 @@ import { SignalingPayload } from "../shared/types.js";
 // In-memory database to temporarily store the information
 const users:Record<string,string[]> = {};
 const socketToRoom:Record<string,string> = {};
+const socketToIam:Record<string,string> = {};
 // --------------------------------------------------------
 export function socketEventInitializer(server: FastifyInstance){
     server.io.on("connection", (socket) => {
-        console.info("Socket connected!", socket.id)
+        const { iam } = socket.handshake.query;
+        if(!iam){
+            // If iam not provided
+            // later on will make some custom logic to check whether it really came from the origin that is whitelisted, not via illegal-intervention
+            socket.disconnect(true)
+            return console.log(`Connection rejected -> ${socket.id}: Required parameter is missing.`);
+        }
+        console.info("Socket connected! : " +  socket.id + " with identity -> " + iam)
             // On room joining request
             socket.on("join room", (roomID:string) => {
               if (users[roomID]) {
@@ -23,18 +31,19 @@ export function socketEventInitializer(server: FastifyInstance){
                   users[roomID] = [socket.id];
               }
               socketToRoom[socket.id] = roomID;
+              socketToIam[socket.id] = iam as string
               const usersInThisRoom = users[roomID].filter((id:string) => id !== socket.id);
               socket.emit("all users", usersInThisRoom); // inform this newly connected socket of existing users in this room
             });
     
             // Sending signal request
             socket.on("sending signal", (payload:SignalingPayload) => {
-                server.io.to(payload.userToSignal).emit('user joined', { signal: payload.signal, callerID: payload.callerID });
+                server.io.to(payload.userToSignal).emit('user joined', { signal: payload.signal, callerID: payload.callerID, callerIAM:  socketToIam[payload.callerID]});
             });
     
             // Returning signal request
             socket.on("returning signal", (payload:SignalingPayload) => {
-                server.io.to(payload.callerID).emit('receiving returned signal', { signal: payload.signal, id: socket.id });
+                server.io.to(payload.callerID).emit('receiving returned signal', { signal: payload.signal, id: socket.id, callerIAM:  socketToIam[socket.id] });
             });
     
             // On disconnect hook
