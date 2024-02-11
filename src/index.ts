@@ -3,7 +3,7 @@ import { Server } from "socket.io";
 import { boilatePlugins } from "./plugins/boilate.js";
 import { socketEventInitializer } from "./core/index.js";
 
-const PORT: number = parseInt(process.env.PORT!) || 300
+const PORT: number = parseInt(process.env.PORT!) || 3000
 
 const server = fastify();
 boilatePlugins(server) // setting up the fastify plugin . . .
